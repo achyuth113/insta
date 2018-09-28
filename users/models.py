@@ -9,7 +9,7 @@ class profile(models.Model):
     create_data = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
     def __str__(self):
-        return self.user_id.username
+        return self.user_id.id
 
 class followers(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)

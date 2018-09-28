@@ -24,8 +24,7 @@ class NewsFeed(LoginRequiredMixin,ListView):
         context = super().get_context_data(**kwargs)
         profile_id = list(item['following_id_id'] for item in following.objects.values('following_id_id').filter(user_id=self.request.user))
         follower_ids= list(item['user_id_id'] for item in profile.objects.values('user_id_id').filter(Q(id__in=profile_id)))
-        feeds = posts.objects.filter(Q(user_id_id__in=follower_ids) | Q(user_id=self.request.user)).order_by(
-            '-update_date')
+        feeds = posts.objects.filter(Q(user_id_id__in=follower_ids)).order_by('-update_date')
         feedData = []
 
         for feed in feeds:
@@ -37,7 +36,7 @@ class NewsFeed(LoginRequiredMixin,ListView):
         liked_posts = [value[0] for value in liked_posts]
 
         context.update({
-            'username': str(self.request.user),
+            'id': int(self.request.user.id),
             'liked_posts': liked_posts,
             'feedsData': feedData,
         })
@@ -49,7 +48,7 @@ class DetailPostView(LoginRequiredMixin,DetailView):
     def get(self, request, *args, **kwargs):
         postform=dict()
         post = posts.objects.all().filter(id=kwargs['slug'])[0]
-        userform = User.objects.values('id', 'first_name', 'username', 'email').filter(username=kwargs['username'])[0]
+        userform = User.objects.values('id', 'first_name', 'username', 'email').filter(id=kwargs['pk'])[0]
         profileform = profile.objects.all().filter(user_id=userform['id'])[0]
         likes_count = like.objects.all().filter(post_id=post).count()
         hasLiked=like.objects.all().filter(post_id=post, user_id=request.user).count()
@@ -62,7 +61,7 @@ class DetailPostView(LoginRequiredMixin,DetailView):
         postform['profileform']=profileform
         postform['hasLiked']=hasLiked
         return render(request, template_name='posts/post_detail.html',
-                      context={'postform': postform, 'username': str(request.user),})
+                      context={'postform': postform, 'id': int(request.user.id),})
 
 
 class CreatePostView(LoginRequiredMixin,CreateView):
@@ -70,14 +69,14 @@ class CreatePostView(LoginRequiredMixin,CreateView):
     template_name = 'posts/post_form.html'
     def get(self, request,*args,**kwargs):
         form = CreatePostForm()
-        return render(request, self.template_name, {'postform': form,'username':request.user})
+        return render(request, self.template_name, {'postform': form,'id':request.user.id})
     def post(self, request,*args,**kwargs):
         form = CreatePostForm(request.POST,request.FILES)
         if form.is_valid():
             post=form.save(commit=False)
             post.user_id=request.user
             post.save()
-        return redirect('users:profile',request.user)
+        return redirect('users:profile',int(request.user.id))
 
 
 
@@ -90,17 +89,17 @@ class EditPost(LoginRequiredMixin, UpdateView):
         print(post.user_id.id)
         if post.user_id.id == request.user.id:
             form = UpdatePostForm(instance=post)
-            return render(request, self.template_name, {'postform': form, 'username': str(request.user)})
+            return render(request, self.template_name, {'postform': form, 'id': int(request.user.id)})
         else:
-            return redirect('users:profile', request.user)
+            return redirect('users:profile', request.user.id)
     def post(self, request, *args, **kwargs):
         instance = posts.objects.get(id=kwargs['pk'])
         form = UpdatePostForm(request.POST, instance=instance)
         if form.is_valid():
             if instance.user_id.id==request.user.id:
                 form.save()
-            return redirect("users:profile", request.user)
-        return redirect('users:profile', request.user)
+            return redirect("users:profile", int(request.user.id))
+        return redirect('users:profile', int(request.user.id))
 
 class DeletePost(LoginRequiredMixin, DeleteView):
     login_url = '/users/login/'
@@ -110,9 +109,9 @@ class DeletePost(LoginRequiredMixin, DeleteView):
         print(post.user_id.id)
         if post.user_id.id == request.user.id:
             post.delete()
-            return redirect('users:profile', request.user)
+            return redirect('users:profile', int(request.user.id))
         else:
-            return redirect('users:profile', request.user)
+            return redirect('users:profile', int(request.user.id))
 
 
 
@@ -128,7 +127,7 @@ def LikesList(request, **kwargs):
         element['is_followed'] = following.objects.all().filter(user_id=request.user,
                                                                 following_id=element['profile']).count()
     args = {
-        'title':"liked people",'userform': userform, 'username': str(request.user)
+        'title':"liked people",'userform': userform, 'id': int(request.user.id)
     }
     return render(request, 'accounts/account_list.html', args)
 

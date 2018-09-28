@@ -1,4 +1,4 @@
-{% include 'base.html' with name=username  valid=True only%}
+{% include 'base.html' with id=id  valid=True only%}
 {% block body %}
 <div class="container back">
     <script>
@@ -83,14 +83,14 @@
     </script>
 
     <div class="posted_data">
-        {% if username == postform.userform.username %}
+        {% if id == postform.userform.id %}
             <nav >
                 <a href="{% url 'posts:delete_post' postform.post.id %}" class="controller"><button class="btn btn-danger pull-right">Delete</button></a>
                 <a href="{% url 'posts:edit_post' pk=postform.post.id %}" class="controller"><button class="btn btn-primary pull-right">Edit</button></a>
             </nav>
         {% endif %}
         <div class="posted_picture">
-            <img alt="corrupted file" ondblclick="likeDoubleClick({{ postform.post.id }})" src="{{ postform.post.file.url }}"/>
+            <img  width="100%" height="100%" alt="corrupted file" ondblclick="likeDoubleClick({{ postform.post.id }})" src="{{ postform.post.file.url }}"/>
         </div>
         <div class="post_related_data" >
             <div class="user_details">

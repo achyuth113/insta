@@ -55,21 +55,21 @@ class ListAccountView(LoginRequiredMixin,ListView):
     login_url = '/users/login/'
     context_object_name = 'userform'
     def get(self, request, *args, **kwargs):
-        userform = list(User.objects.values('id','first_name','username','email').all().filter(username=kwargs['username']))
-        userform = userform + list(User.objects.values('id','first_name','username','email').all().filter(is_superuser=0).filter(~Q(username=kwargs['username'])))
+        userform = list(User.objects.values('id','first_name','username','email').all().filter(id=kwargs['pk']))
+        userform = userform + list(User.objects.values('id','first_name','username','email').all().filter(is_superuser=0).filter(~Q(id=kwargs['pk'])))
         for element in userform:
             element['profile']=profile.objects.all().filter(user_id=element['id'])[0]
             element['followers']=following.objects.all().filter(following_id=element['profile']).count()
             element['following'] = following.objects.all().filter(user_id=element['id']).count()
             element['is_followed']= following.objects.all().filter(user_id=request.user,following_id=element['profile']).count()
-        return render(request, template_name='accounts/account_list.html',context={'userform':userform,'username':str(request.user),'title':"List of users"})
+        return render(request, template_name='accounts/account_list.html',context={'userform':userform,'id':int(request.user.id),'title':"List of users"})
 
 
 class DetailAccountView(LoginRequiredMixin,DetailView):
     login_url = '/users/login/'
     context_object_name = 'userform'
     def get(self, request, *args, **kwargs):
-        userform = User.objects.values('id', 'first_name', 'username', 'email').filter(username=kwargs['username'])[0]
+        userform = User.objects.values('id', 'first_name', 'username', 'email').filter(id=kwargs['pk'])[0]
         profileform = profile.objects.all().filter(user_id=userform['id'])[0]
         followers_count = following.objects.all().filter(following_id=profileform).count()
         following_count = following.objects.filter(user_id=userform['id']).count()
@@ -81,15 +81,15 @@ class DetailAccountView(LoginRequiredMixin,DetailView):
         userform['posts']=total_posts
         userform['post_count']=total_posts.count()
         return render(request, template_name='accounts/account_detail.html',
-                      context={'userform': userform, 'username': str(request.user), 'connected': int(connected)})
+                      context={'userform': userform, 'id': int(request.user.id), 'connected': int(connected)})
 
 class UpdateAccountView(LoginRequiredMixin,UpdateView):
     login_url = '/users/login/'
     model = profile
     template_name='accounts/add_user_profile.html'
     def get(self, request, *args, **kwargs):
-        if request.user.username != kwargs['username']:
-            return redirect("users:update", request.user)
+        if int(request.user.id) != int(kwargs['pk']):
+            return redirect("users:update", request.user.id)
         myprofile = profile.objects.get(user_id=request.user.id)
         form = ProfileForm(instance=myprofile)
         details=profile.objects.all().filter(user_id=request.user.id)[0]
@@ -99,14 +99,14 @@ class UpdateAccountView(LoginRequiredMixin,UpdateView):
         form = ProfileForm(request.POST,request.FILES, instance=instance)
         if form.is_valid():
             form.save()
-            return redirect("users:profile", request.user)
-        return redirect('users:profile', request.user)
+            return redirect("users:profile", request.user.id)
+        return redirect('users:profile', request.user.id)
 
 
 class FollowersListView(LoginRequiredMixin,ListView):
     login_url = '/users/login/'
     def get(self, request, *args, **kwargs):
-        profile_id=profile.objects.all().filter(user_id__username=kwargs['username'])[0]
+        profile_id=profile.objects.all().filter(user_id__id=kwargs['pk'])[0]
         list_of_users=list(item['user_id'] for item in list(following.objects.values('user_id').filter(following_id=profile_id)))
         userform = list(User.objects.values('id', 'first_name', 'username', 'email').filter(id__in=list_of_users))
         for element in userform:
@@ -116,13 +116,13 @@ class FollowersListView(LoginRequiredMixin,ListView):
             element['is_followed'] = following.objects.all().filter(user_id=request.user,
                                                                     following_id=element['profile']).count()
         return render(request, template_name='accounts/account_list.html',
-                      context={'title':"List of followers", 'userform': userform, 'username': str(request.user)})
+                      context={'title':"List of followers", 'userform': userform, 'id': int(request.user.id)})
 
 
 class FollowingListView(LoginRequiredMixin,ListView):
     login_url = '/users/login/'
     def get(self, request, *args, **kwargs):
-        user_id = User.objects.all().filter(username=kwargs['username'])[0]
+        user_id = User.objects.all().filter(id=kwargs['pk'])[0]
         list_of_users = list(
             item['following_id'] for item in list(following.objects.values('following_id').filter(user_id=user_id)))
         userform = list(User.objects.values('id', 'first_name', 'username', 'email').filter(profile__id__in=list_of_users))
@@ -132,7 +132,7 @@ class FollowingListView(LoginRequiredMixin,ListView):
             element['following'] = following.objects.all().filter(user_id=element['id']).count()
             element['is_followed'] = 1
         return render(request, template_name='accounts/account_list.html',
-                      context={'title':"List of following",'userform': userform, 'username': str(request.user)})
+                      context={'title':"List of following",'userform': userform, 'id': int(request.user.id)})
 
 
 @login_required
@@ -155,13 +155,12 @@ def change_password(request, *args, **kwargs):
 @login_required
 def follow_view(request, *args, **kwargs):
     try:
-        follower = User.objects.get(username=request.user)
-        temp = User.objects.get(username=kwargs['username'])
-        followings = profile.objects.get(user_id=temp.id)
+        follower = User.objects.get(id=request.user.id)
+        followings = profile.objects.get(user_id=kwargs['pk'])
     except User.DoesNotExist:
         messages.warning(
             request,
-            '{} is not a registered user.'.format(kwargs['username'])
+            'requested user is not a registered user.'
         )
         return HttpResponseRedirect(reverse_lazy('home'))
     if str(follower) == str(following):
@@ -177,17 +176,17 @@ def follow_view(request, *args, **kwargs):
         if (created):
             messages.success(
                 request,
-                'You\'ve successfully followed {}.'.format(kwargs['username'])
+                'You\'ve successfully followed.'
             )
         else:
             messages.warning(
                 request,
-                'You\'ve already followed {}.'.format(kwargs['username'])
+                'You\'ve already followed.'
             )
     return HttpResponseRedirect(
         reverse_lazy(
             'users:profile',
-            kwargs={'username': request.user}
+            kwargs={'pk': int(request.user.id)}
         )
     )
 
@@ -195,9 +194,8 @@ def follow_view(request, *args, **kwargs):
 @login_required
 def unfollow_view(request, *args, **kwargs):
     try:
-        follower = User.objects.get(username=request.user)
-        temp = User.objects.get(username=kwargs['username'])
-        followings = profile.objects.get(user_id=temp.id)
+        follower = User.objects.get(id=request.user.id)
+        followings = profile.objects.get(user_id=kwargs['pk'])
         if str(follower) == str(following):
             messages.warning(
                 request,
@@ -208,23 +206,23 @@ def unfollow_view(request, *args, **kwargs):
             print(status)
             messages.success(
                 request,
-                'You\'ve just unfollowed {}.'.format(kwargs['username'])
+                'You\'ve just unfollowed.'
             )
     except User.DoesNotExist:
         messages.warning(
             request,
-            '{} is not a registered user.'.format(kwargs['username'])
+            'Requested user is not a registered user.'
         )
-        return HttpResponseRedirect(reverse_lazy('users:profile',kwargs={'username': request.user}))
+        return HttpResponseRedirect(reverse_lazy('users:profile',kwargs={'pk': int(request.user.id)}))
     except followers.DoesNotExist:
         messages.warning(
             request,
-            'You didn\'t follow {0}.'.format(kwargs['username'])
+            'You didn\'t follow this person.'
         )
     return HttpResponseRedirect(
         reverse_lazy(
             'users:profile',
-            kwargs={'username': request.user}
+            kwargs={'pk': int(request.user.id)}
         )
     )
 

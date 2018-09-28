@@ -36,7 +36,7 @@
                             $('#search-results').show();
                             var json = JSON.parse(this.responseText);
                             json.forEach(function(item){
-                               var temp = $("<tr><td class='pic'><img class='thumbnail' src="+item['avatar']+"/></td><td><a href='/users/"+item.user_id.username+"/profile'>"+item.user_id.username+"</a></td></tr>");
+                               var temp = $("<tr><td class='pic'><img class='thumbnail' src="+item['avatar']+"/></td><td><a href='/users/profile/"+item.user_id.id+"'>"+item.user_id.username+"</a></td></tr>");
                                search_results.append(temp);
                             });
                         }
@@ -71,11 +71,10 @@
 <body class="back">
 <nav  id="header" class="navbar navbar-default navbar-fixed-top front">
   <div class="container-fluid">
-
-        <div class="navbar-header" style="float:left;" >
+        <div class="navbar-header">
             <a href="{% url 'posts:feed' %}">
-            <img id="header_logo" class="navbar-brand" src="{% static 'Instagram-header-logo.png'%}"/>
-            <img id="header_text" class="navbar-brand" src="{% static 'Instagram-logo-png-text.png'%}"/>
+            <img id="header_logo"  class="navbar-brand" src="{% static 'Instagram-header-logo.png'%}"/>
+            <img id="header_text"  class="navbar-brand" src="{% static 'Instagram-logo-png-text.png'%}"/>
             </a>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false" aria-controls="navbar">
                 <span class="sr-only">Toggle navigation</span>
@@ -89,11 +88,11 @@
      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
          {% if user.is_authenticated or valid %}
             <ul class="nav navbar-nav mr-auto">
-                <li class="nav-item"><a href="{% url 'users:user_list' username=name %}">People</a></li>
+                <li class="nav-item"><a href="{% url 'users:user_list' pk=id %}">People</a></li>
                 <li class="nav-item"><a href="{% url 'posts:add_post' %}">Upload</a></li>
             </ul>
-           <div class="navbar-nav" style="width:200px;display: inline-block;" id="search_container">
-                <input type="text"  onkeyup="search_bar(this.value)"  id="search-bar" placeholder=" Search..."/>
+           <div class="navbar-nav" style="display: inline-block;width: 100px;" id="search_container">
+                <input type="text"  onkeyup="search_bar(this.value)"  id="search-bar" placeholder="search.."/>
                <div id="search-results-container">
                    <table id="search-results" ></table>
                </div>
@@ -102,7 +101,7 @@
 
         <ul class="nav navbar-nav mr-auto navbar-right">
             {% if user.is_authenticated  or valid%}
-                <li class="nav-item"><a href="{% url 'users:profile' username=name %}">Profile</a></li>
+                <li class="nav-item"><a href="{% url 'users:profile' pk=id %}">Profile</a></li>
                 <li class="nav-item"><a href="{% url 'users:logout_form' %}">Log Out</a></li>
             {% else %}
                 <li class="nav-item"><a href="{% url 'users:login_form' %}">Log In</a></li>
